@@ -36,25 +36,30 @@ router.get('/:id', auth, async (req, res) => {
 });
 
 
+// @route   PUT api/users/me
+// @desc    Update current user's profile
+// @access  Private
 router.put('/me', auth, async (req, res) => {
-  // Add major and graduationYear to the destructuring
-  const { bio, company, jobTitle, skills, major, graduationYear } = req.body;
+  // ## THE FIX IS HERE: We now correctly look for 'branch' and 'year' ##
+  const { bio, company, jobTitle, skills, branch, year, yearsOfExperience, pricing, techStack, interests } = req.body;
 
-  // Build profile object
   const profileFields = {};
   if (bio) profileFields.bio = bio;
   if (company) profileFields.company = company;
   if (jobTitle) profileFields.jobTitle = jobTitle;
-  // Add the new fields to the object
-  if (major) profileFields.major = major;
-  if (graduationYear) profileFields.graduationYear = graduationYear;
-  
-  if (skills) {
-    profileFields.skills = skills.split(',').map(skill => skill.trim());
-  }
+  if (yearsOfExperience) profileFields.yearsOfExperience = yearsOfExperience;
+  if (pricing) profileFields.pricing = pricing;
+
+  // Add the corrected junior-specific fields
+  if (branch) profileFields.branch = branch;
+  if (year) profileFields.year = year;
+
+  // Handle the array fields
+  if (skills) profileFields.skills = skills;
+  if (interests) profileFields.interests = interests;
+  if (techStack) profileFields.techStack = techStack;
 
   try {
-    // The rest of the function remains the same
     let user = await User.findByIdAndUpdate(
       req.user.id,
       { $set: profileFields },
@@ -62,6 +67,55 @@ router.put('/me', auth, async (req, res) => {
     ).select('-password');
 
     res.json(user);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+
+// @route   POST api/users/me/submit-verification
+// @desc    Submit verification details for a senior mentor
+// @access  Private
+router.post('/me/submit-verification', auth, async (req, res) => {
+  const { linkedInUrl } = req.body;
+
+  if (!linkedInUrl) {
+    return res.status(400).json({ msg: 'Please provide a LinkedIn URL.' });
+  }
+
+  try {
+    const user = await User.findById(req.user.id);
+
+    // Only seniors can submit for verification
+    if (user.role !== 'senior') {
+      return res.status(403).json({ msg: 'Only senior mentors can be verified.' });
+    }
+
+    user.linkedInUrl = linkedInUrl;
+    user.verificationStatus = 'pending'; // Set status to pending for admin review
+    await user.save();
+
+    res.json(user);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   PUT /api/users/me/availability
+// @desc    Update a mentor's available time slots
+// @access  Private (Seniors only)
+router.put('/me/availability', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (user.role !== 'senior') {
+      return res.status(403).json({ msg: 'Only mentors can set availability.' });
+    }
+    // The frontend will send the entire new array of slots
+    user.availableTimeSlots = req.body.slots;
+    await user.save();
+    res.json(user.availableTimeSlots);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
