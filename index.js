@@ -37,6 +37,7 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/ratings', require('./routes/ratings'));
 app.use('/api/sessions', require('./routes/sessions'));
 app.use('/api/insights', require('./routes/insights'));
+app.use('/api/questions', require('./routes/questions'));
 
 // In server/index.js
 app.use('/api/messages', require('./routes/messages'));
