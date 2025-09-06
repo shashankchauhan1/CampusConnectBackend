@@ -3,7 +3,10 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const multer = require('multer'); // Import multer
+const pdf = require('pdf-parse'); // Import pdf-parse
 
+const upload = multer({ storage: multer.memoryStorage() }); // Configure multer to store files in memory
 // Initialize the Google AI client with the API key from .env
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -116,5 +119,48 @@ router.post('/interview', auth, async (req, res) => {
     res.status(500).send('Error communicating with AI assistant.');
   }
 });
+
+
+// @route   POST api/ai/check-resume-upload
+// @desc    Analyze an uploaded PDF resume
+// @access  Private
+router.post('/check-resume-upload', [auth, upload.single('resumeFile')], async (req, res) => {
+    const { jobDescription } = req.body;
+    
+    if (!req.file) {
+        return res.status(400).json({ msg: 'No resume file uploaded.' });
+    }
+    if (!jobDescription) {
+        return res.status(400).json({ msg: 'Please provide a job description.' });
+    }
+
+    try {
+        // Parse the text content from the uploaded PDF buffer
+        const data = await pdf(req.file.buffer);
+        const resumeText = data.text;
+
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
+        const prompt = `
+            You are an expert career coach...
+            ---
+            **Job Description:**
+            ${jobDescription}
+            ---
+            **Candidate's Resume:**
+            ${resumeText}
+        `;
+        
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const feedback = response.text();
+
+        res.json({ feedback });
+
+    } catch (err) {
+        console.error('Error processing resume upload:', err);
+        res.status(500).send('Error analyzing resume.');
+    }
+});
+
 
 module.exports = router;
