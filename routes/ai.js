@@ -65,8 +65,7 @@ router.post('/interview', auth, async (req, res) => {
   }
 
   try {
-    // ## THE FIX IS HERE: We define a system instruction for the AI ##
-     const systemInstruction = `
+    const systemInstruction = `
     You are 'Roop', a professional HR + Technical interviewer representing ${company || 'a leading tech company'}. 
     You are interviewing a Computer Science fresher for a Software Engineer role. 
     Your task is to conduct a structured, realistic interview that feels natural and engaging.
@@ -102,7 +101,6 @@ router.post('/interview', auth, async (req, res) => {
     const chatHistory = history || [];
     const chat = model.startChat({ history: chatHistory });
 
-    // The message we send is now much simpler
     const message = history.length === 0 ? "Let's begin." : userAnswer;
 
     const result = await chat.sendMessage(message);
@@ -115,8 +113,16 @@ router.post('/interview', auth, async (req, res) => {
     });
 
   } catch (err) {
-    console.error('Error in AI interview route:', err);
-    res.status(500).send('Error communicating with AI assistant.');
+    console.error('Error in AI interview route:', {
+      message: err.message,
+      stack: err.stack,
+      config: err.config,
+    });
+
+    res.status(500).json({
+      msg: 'Error communicating with AI assistant.',
+      error: err.message,
+    });
   }
 });
 

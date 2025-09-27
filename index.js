@@ -38,15 +38,18 @@ app.use('/api/ratings', require('./routes/ratings'));
 app.use('/api/sessions', require('./routes/sessions'));
 app.use('/api/insights', require('./routes/insights'));
 app.use('/api/questions', require('./routes/questions'));
-
-// In server/index.js
+app.use('/api/opportunities', require('./routes/opportunities'));
 app.use('/api/messages', require('./routes/messages'));
-// Add this in server/index.js
 app.use('/api/ai', require('./routes/ai'));
+app.use('/api/portfolio', require('./routes/portfolio'));
 
 app.get('/', (req, res) => {
   res.json({ message: "Welcome to the Campus Connect API!" });
 });
+
+// Error handling middleware (must be after routes)
+const errorHandler = require('./middleware/errorHandler');
+app.use(errorHandler);
 
 // --- Socket.IO Connection Logic ---
 let onlineUsers = {}; // Simple in-memory store for online users { userId: socketId }

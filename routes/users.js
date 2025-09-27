@@ -4,6 +4,36 @@ const router = express.Router();
 const auth = require('../middleware/auth'); // Import our auth middleware
 const User = require('../models/User');
 
+// @route   GET api/users/mentors
+// @desc    Search mentors with filters
+// @access  Private
+router.get('/mentors/search', auth, async (req, res) => {
+  try {
+    const { skill, branch, minExp, maxPrice, verified, q } = req.query;
+
+    const filter = { role: 'senior' };
+    if (skill) filter.skills = { $in: [skill] };
+    if (branch) filter.branch = branch;
+    if (minExp) filter.yearsOfExperience = { ...(filter.yearsOfExperience || {}), $gte: Number(minExp) };
+    if (maxPrice) filter.pricing = { ...(filter.pricing || {}), $lte: Number(maxPrice) };
+    if (verified === 'true') filter.verificationStatus = 'approved';
+    if (q) {
+      filter.$or = [
+        { name: { $regex: q, $options: 'i' } },
+        { bio: { $regex: q, $options: 'i' } },
+        { company: { $regex: q, $options: 'i' } },
+        { jobTitle: { $regex: q, $options: 'i' } },
+      ];
+    }
+
+    const mentors = await User.find(filter).select('-password').sort({ averageRating: -1, ratingCount: -1 });
+    res.json(mentors);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 // @route   GET api/users
 // @desc    Get all users
 // @access  Private

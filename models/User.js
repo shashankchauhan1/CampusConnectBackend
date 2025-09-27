@@ -5,7 +5,7 @@ const UserSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  role: { type: String, enum: ['junior', 'senior'], default: 'junior' },
+  role: { type: String, enum: ['junior', 'senior', 'faculty', 'admin'], default: 'junior' },
   bio: { type: String, default: '' },
   
   // --- Junior-specific fields ---
@@ -45,6 +45,7 @@ availableTimeSlots: [{
   badgeScore: { type: Number, default: 0 }, // <-- ADD THIS
 
   walletBalance: { type: Number, default: 100 }, // NEW: Give users 100 free credits to start
+  collegeEmailVerified: { type: Boolean, default: false },
   date: { type: Date, default: Date.now },
 });
 

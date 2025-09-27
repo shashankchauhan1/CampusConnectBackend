@@ -115,4 +115,31 @@ router.get('/me', auth, async (req, res) => {
   }
 });
 
+// @route   POST /api/auth/verify-college
+// @desc    Mark user's college email as verified (simple domain check placeholder)
+// @access  Private
+router.post('/verify-college', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+
+    const emailToVerify = user.email || '';
+    const domain = emailToVerify.split('@')[1] || '';
+    const isCollegeDomain = /\.edu$|\.ac\.[a-z]{2}$/i.test(domain);
+
+    if (!isCollegeDomain) {
+      return res.status(400).json({ msg: 'Email is not a recognized college domain' });
+    }
+
+    user.collegeEmailVerified = true;
+    await user.save();
+    res.json({ collegeEmailVerified: true });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 module.exports = router;
